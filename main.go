@@ -12,9 +12,10 @@ import (
 const maxSleepSec int64 = 10
 
 var (
-	isDebugMode    bool
-	peekStartHours = []int{10, 13, 18}
-	peekEndHours   = []int{11, 14, 20}
+	isDebugMode bool
+	// peek time (JST): 10:00-11:00, 13:00-14:00, 18:00-20:00
+	peekStartHours = []int{1, 4, 9}
+	peekEndHours   = []int{2, 5, 11}
 )
 
 func main() {
