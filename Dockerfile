@@ -11,7 +11,7 @@ ENV CGO_ENABLED=0
 
 COPY . .
 
-RUN go build -ldflags '-X github.com/yyh-gl/gatling/app.version=$(version)' -o ./gatling . 
+RUN go build -ldflags '-X main.version=$(version)' -o ./gatling . 
 
 FROM gcr.io/distroless/base
 

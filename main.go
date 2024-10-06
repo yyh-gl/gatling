@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math/big"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const maxSleepSec int64 = 10
@@ -19,8 +25,40 @@ var (
 )
 
 func main() {
+	countUpRunningVersion(version)
+
 	isDebugMode = os.Getenv("DEBUG") == "true"
 
+	startLoadTest()
+
+	router := newRouter()
+	server := &http.Server{
+		Addr:    ":9090",
+		Handler: router,
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- server.ListenAndServe()
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	select {
+	case err := <-errCh:
+		log(fmt.Sprintf("received error signal: %s", err.Error()))
+	case sig := <-sigCh:
+		fmt.Printf("received signal: %s\n", sig.String())
+		countDownRunningVersion(version)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log(fmt.Sprintf("failed to graceful shutdown: %s", err.Error()))
+	}
+}
+
+func startLoadTest() {
 	go gatling(http.MethodGet)
 	go gatling(http.MethodGet)
 	go gatling(http.MethodGet)
@@ -29,8 +67,6 @@ func main() {
 
 	go gatling(http.MethodPost)
 	go gatling(http.MethodPost)
-
-	select {}
 }
 
 func gatling(method string) {
@@ -67,4 +103,10 @@ func log(message string) {
 	if isDebugMode {
 		fmt.Println(message)
 	}
+}
+
+func newRouter() *mux.Router {
+	r := mux.NewRouter()
+	r.Handle("/metrics", promhttp.Handler())
+	return r
 }
