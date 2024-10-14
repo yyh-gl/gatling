@@ -1,9 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-)
+import "github.com/prometheus/client_golang/prometheus"
 
 var (
 	// embed at build time
@@ -16,9 +13,6 @@ var (
 )
 
 func init() {
-	fmt.Println("========================")
-	fmt.Println("hoge")
-	fmt.Println("========================")
 	prometheus.MustRegister(runningVersion)
 }
 
